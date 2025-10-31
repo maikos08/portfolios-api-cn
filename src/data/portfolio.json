@@ -1,0 +1,8 @@
+[
+  {
+    "id": 1,
+    "name": "Corazoncito de Melocotón",
+    "description": "Desarrolladora Backend Node.js",
+    "skills": ["Node.js", "Express", "Docker"]
+  }
+]

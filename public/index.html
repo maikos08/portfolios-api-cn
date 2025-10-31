@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio API - Frontend</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 {
+      color: white; text-align: center; margin-bottom: 30px;
+      font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .controls, .stats {
+      background: white; padding: 20px; border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+    input, textarea {
+      width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 5px;
+      font-size: 14px; transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #667eea; }
+    textarea { resize: vertical; min-height: 60px; }
+    .btn {
+      background: #667eea; color: white; border: none; padding: 12px 24px;
+      border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;
+      transition: background 0.3s; margin-right: 10px; margin-top: 10px;
+    }
+    .btn:hover { background: #5568d3; }
+    .btn-secondary { background: #95a5a6; }
+    .btn-secondary:hover { background: #7f8c8d; }
+    .btn-danger { background: #e74c3c; }
+    .btn-danger:hover { background: #c0392b; }
+    .portfolios-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px; margin-top: 20px;
+    }
+    .portfolio-card {
+      background: white; padding: 20px; border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    .portfolio-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.2);
+    }
+    .skill-tag {
+      background: #667eea; color: white; padding: 5px 12px;
+      border-radius: 20px; font-size: 12px; font-weight: bold;
+      display: inline-block; margin: 3px;
+    }
+    .loading { text-align: center; color: white; font-size: 18px; padding: 20px; }
+    .error, .success {
+      color: white; padding: 15px; border-radius: 5px; margin-bottom: 20px;
+      text-align: center;
+    }
+    .error { background: #e74c3c; }
+    .success { background: #2ecc71; }
+    .config-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.8); display: flex; justify-content: center;
+      align-items: center; z-index: 1000;
+    }
+    .config-modal {
+      background: white; padding: 30px; border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3); max-width: 400px;
+      width: 90%; text-align: center;
+    }
+    .config-modal input {
+      width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #ddd;
+      border-radius: 5px; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <!-- MODAL DE CONFIGURACIÓN -->
+  <div id="configOverlay" class="config-overlay">
+    <div class="config-modal">
+      <h2>⚙️ Configurar API</h2>
+      <input type="text" id="apiUrlInput" placeholder="https://mi-api.amazonaws.com/prod/portfolios">
+      <input type="password" id="apiKeyInput" placeholder="API Key">
+      <button class="btn" onclick="saveConfig()">Guardar y Conectar</button>
+    </div>
+  </div>
+
+  <div class="container" id="app" style="display:none;">
+    <h1>🚀 Portfolio API Manager</h1>
+    <div id="message"></div>
+
+    <div class="controls">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2 id="formTitle">Crear nuevo Portfolio</h2>
+        <button class="btn-secondary btn" onclick="openConfig()">⚙️ Configurar</button>
+      </div>
+      <form id="portfolioForm">
+        <input type="hidden" id="portfolioId">
+        <div class="form-group">
+          <label for="name">Nombre *</label>
+          <input type="text" id="name" required placeholder="Ej: Corazoncito de Melocotón">
+        </div>
+        <div class="form-group">
+          <label for="description">Descripción</label>
+          <textarea id="description"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="skills">Habilidades (separadas por comas)</label>
+          <input type="text" id="skills" placeholder="Node.js, AWS, DynamoDB">
+        </div>
+        <button type="submit" class="btn" id="submitBtn">Crear Portfolio</button>
+        <button type="button" class="btn btn-secondary" id="cancelBtn" style="display:none;">Cancelar</button>
+      </form>
+    </div>
+
+    <div class="stats" id="statsSection" style="display:none;">
+      <h2>📊 Todas las habilidades</h2>
+      <div id="allSkills"></div>
+    </div>
+
+    <div id="loading" class="loading" style="display:none;">Cargando portfolios...</div>
+    <div class="portfolios-grid" id="portfoliosGrid"></div>
+  </div>
+
+  <script>
+    let API_URL = '';
+    let API_KEY = '';
+    let editingId = null;
+
+    const portfolioForm = document.getElementById('portfolioForm');
+    const portfoliosGrid = document.getElementById('portfoliosGrid');
+    const loadingDiv = document.getElementById('loading');
+    const messageDiv = document.getElementById('message');
+    const formTitle = document.getElementById('formTitle');
+    const submitBtn = document.getElementById('submitBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const statsSection = document.getElementById('statsSection');
+
+    window.onload = () => {
+      const savedUrl = localStorage.getItem('portfolioApiUrl');
+      const savedKey = localStorage.getItem('portfolioApiKey');
+      if (savedUrl && savedKey) {
+        API_URL = savedUrl;
+        API_KEY = savedKey;
+        document.getElementById('apiUrlInput').value = savedUrl;
+        document.getElementById('apiKeyInput').value = savedKey;
+        document.getElementById('configOverlay').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadPortfolios();
+        loadAllSkills();
+      }
+    };
+
+    function saveConfig() {
+      const url = document.getElementById('apiUrlInput').value.trim();
+      const key = document.getElementById('apiKeyInput').value.trim();
+      if (!url || !key) {
+        alert('Por favor, completa la URL y la API Key');
+        return;
+      }
+      API_URL = url.endsWith('/') ? url.slice(0, -1) : url;
+      API_KEY = key;
+      localStorage.setItem('portfolioApiUrl', API_URL);
+      localStorage.setItem('portfolioApiKey', API_KEY);
+      document.getElementById('configOverlay').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      loadPortfolios();
+      loadAllSkills();
+    }
+
+    function openConfig() {
+      document.getElementById('configOverlay').style.display = 'flex';
+      document.getElementById('app').style.display = 'none';
+    }
+
+    async function apiRequest(endpoint, method = 'GET', body = null) {
+      const options = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY
+        }
+      };
+      if (body) options.body = JSON.stringify(body);
+      const res = await fetch(`${API_URL}${endpoint}`, options);
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      if (method === 'DELETE') return null;
+      return await res.json();
+    }
+
+    portfolioForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value;
+      const description = document.getElementById('description').value;
+      const skills = document.getElementById('skills').value.split(',').map(s => s.trim()).filter(Boolean);
+      const data = { name, description, skills };
+
+      try {
+        if (editingId) await apiRequest(`/${editingId}`, 'PUT', data);
+        else await apiRequest('', 'POST', data);
+        portfolioForm.reset();
+        editingId = null;
+        formTitle.textContent = 'Crear nuevo Portfolio';
+        submitBtn.textContent = 'Crear Portfolio';
+        cancelBtn.style.display = 'none';
+        loadPortfolios();
+        loadAllSkills();
+      } catch (err) {
+        showMessage('Error: ' + err.message, 'error');
+      }
+    });
+
+    cancelBtn.addEventListener('click', () => {
+      portfolioForm.reset();
+      editingId = null;
+      formTitle.textContent = 'Crear nuevo Portfolio';
+      submitBtn.textContent = 'Crear Portfolio';
+      cancelBtn.style.display = 'none';
+    });
+
+    async function loadPortfolios() {
+      loadingDiv.style.display = 'block';
+      try {
+        const data = await apiRequest('', 'GET');
+        loadingDiv.style.display = 'none';
+        portfoliosGrid.innerHTML = '';
+        if (data.length === 0) {
+          portfoliosGrid.innerHTML = '<p style="color:white;text-align:center;">No hay portfolios aún.</p>';
+          return;
+        }
+        data.forEach(p => portfoliosGrid.appendChild(createPortfolioCard(p)));
+      } catch (err) {
+        showMessage('Error cargando portfolios: ' + err.message, 'error');
+        loadingDiv.style.display = 'none';
+      }
+    }
+
+    async function loadAllSkills() {
+      try {
+        const skills = await apiRequest('/habilidades/all', 'GET');
+        const allSkills = document.getElementById('allSkills');
+        if (skills.length > 0) {
+          statsSection.style.display = 'block';
+          allSkills.innerHTML = skills.map(s => `<span class="skill-tag">${s}</span>`).join('');
+        } else statsSection.style.display = 'none';
+      } catch {}
+    }
+
+    function createPortfolioCard(p) {
+      const div = document.createElement('div');
+      div.className = 'portfolio-card';
+      div.innerHTML = `
+        <h3>${p.name}</h3>
+        <p>${p.description || 'Sin descripción'}</p>
+        ${p.skills?.map(s => `<span class='skill-tag'>${s}</span>`).join('') || ''}
+        <div class='card-actions'>
+          <button class='btn' onclick="editPortfolio('${p.id}')">Editar</button>
+          <button class='btn btn-danger' onclick="deletePortfolio('${p.id}')">Eliminar</button>
+        </div>`;
+      return div;
+    }
+
+    async function editPortfolio(id) {
+      const p = await apiRequest(`/${id}`, 'GET');
+      document.getElementById('name').value = p.name;
+      document.getElementById('description').value = p.description || '';
+      document.getElementById('skills').value = p.skills?.join(', ') || '';
+      editingId = id;
+      formTitle.textContent = 'Editar Portfolio';
+      submitBtn.textContent = 'Actualizar';
+      cancelBtn.style.display = 'inline-block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function deletePortfolio(id) {
+      if (!confirm('¿Eliminar este portfolio?')) return;
+      await apiRequest(`/${id}`, 'DELETE');
+      showMessage('Eliminado correctamente', 'success');
+      loadPortfolios();
+      loadAllSkills();
+    }
+
+    function showMessage(text, type) {
+      messageDiv.className = type;
+      messageDiv.textContent = text;
+      messageDiv.style.display = 'block';
+      setTimeout(() => messageDiv.style.display = 'none', 4000);
+    }
+  </script>
+</body>
+</html>

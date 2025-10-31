@@ -1,0 +1,145 @@
+# ------------------------
+# Sistema operativo
+# ------------------------
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ------------------------
+# Archivos de entorno / secretos
+# ------------------------
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+*.crt
+secrets/
+credentials/
+
+# ------------------------
+# Logs y reportes
+# ------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+coverage/
+coverage-final.json
+lcov-report/
+.report/
+
+# ------------------------
+# Node.js / JavaScript
+# ------------------------
+node_modules/
+dist/
+build/
+.cache/
+.next/
+out/
+.nyc_output/
+*.tgz
+
+# ------------------------
+# Python
+# ------------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+venv/
+env/
+.venv/
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+build/
+
+# ------------------------
+# Java / Gradle / Maven
+# ------------------------
+target/
+build/
+*.class
+*.jar
+*.war
+*.ear
+.gradle/
+.mvn/
+
+# ------------------------
+# .NET
+# ------------------------
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# ------------------------
+# Go
+# ------------------------
+vendor/
+*.exe
+*.test
+*.out
+
+# ------------------------
+# Ruby / Rails
+# ------------------------
+log/
+tmp/
+*.gem
+.bundle/
+vendor/bundle/
+
+# ------------------------
+# Docker
+# ------------------------
+docker-compose.override.yml
+docker-compose.*.yml
+docker-compose.local.yml
+
+# ------------------------
+# IDEs y editores
+# ------------------------
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.sublime-workspace
+*.sublime-project
+
+# ------------------------
+# Archivos de build / distribución
+# ------------------------
+build/
+dist/
+release/
+out/
+
+# ------------------------
+# Cachés varios
+# ------------------------
+.cache/
+*.lock
+*.swp
+*.DS_Store
+
+# ------------------------
+# Excepciones (descomentar si necesitas versionar)
+# ------------------------
+# !package-lock.json
+# !yarn.lock
+# !pnpm-lock.yaml

@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "DynamoDB Table mínima para Portfolios"
+
+Parameters:
+  TableName:
+    Type: String
+    Default: Portfolios
+    Description: Nombre de la tabla DynamoDB
+
+Resources:
+  PortfoliosTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    Properties:
+      TableName: !Ref TableName
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+Outputs:
+  TableName:
+    Description: DynamoDB table name
+    Value: !Ref PortfoliosTable
+
+  TableArn:
+    Description: ARN DynamoDB table
+    Value: !GetAtt PortfoliosTable.Arn
