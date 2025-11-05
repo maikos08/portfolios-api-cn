@@ -14,7 +14,7 @@ export const getAllPortfolios = async (req: Request, res: Response, next: NextFu
       TableName: TABLE_NAME,
     });
     const result = await dynamoDb.send(command);
-    res.json(result.Items || []);
+    res.json(result.Items || [{message: 'No portfolios found'}]);
   } catch (err) {
     next(err);
   }
