@@ -13,9 +13,7 @@ export const config = {
   env: process.env.NODE_ENV || 'development',
   port: toNumber(process.env.PORT, 8080),
   aws: {
-    region: process.env.AWS_REGION || 'us-east-1',
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID, 
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION || 'us-east-1'
   },
   dynamodb: {
     tableName: process.env.DYNAMODB_TABLE_NAME || 'Portfolios',

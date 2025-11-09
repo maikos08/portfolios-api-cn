@@ -2,12 +2,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { config } from './index';
 
-const credentials = (config.aws.accessKeyId && config.aws.secretAccessKey)
-  ? {
-      accessKeyId: config.aws.accessKeyId,
-      secretAccessKey: config.aws.secretAccessKey,
-    }
-  : undefined;
+const credentials = undefined;
 
 const client = new DynamoDBClient({
   region: config.aws.region,

@@ -3,8 +3,7 @@ import { ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } fro
 import { v4 as uuidv4 } from 'uuid';
 import { dynamoDb } from '../config/data-source';
 import { config } from '../config';
-import { Portfolio } from '../models/portfolio.model';
-import { CreatePortfolioDTO, UpdatePortfolioDTO } from '../types/portfolio.d';
+import { CreatePortfolioDTO, UpdatePortfolioDTO, Portfolio } from '../types/portfolio.d';
 
 const TABLE_NAME = config.dynamodb.tableName;
 

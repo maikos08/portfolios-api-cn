@@ -15,6 +15,11 @@ Parameters:
     Type: List<AWS::EC2::Subnet::Id>
     Description: At least 2 Subnets
 
+  VpcCidr:
+    Type: String
+    Description: Bloque CIDR de la VPC (ej. 10.0.0.0/16) para restringir el acceso al Security Group de ECS.
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+
   DBDynamoName:
     Type: String
     Default: "Portfolios"
@@ -25,13 +30,13 @@ Resources:
   ECSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Security group for ECS tasks
+      GroupDescription: Security group para ECS tasks (Solo acceso desde el NLB interno)
       VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 8080
           ToPort: 8080
-          CidrIp: 0.0.0.0/0
+          CidrIp: !Ref VpcCidr
 
   # ------------------ NLB ------------------
   NetworkLoadBalancer:
@@ -362,15 +367,639 @@ Resources:
       KeyType: API_KEY
       UsagePlanId: !Ref UsagePlan
 
+  
+  # DOCUMENTACIÓN DE API GATEWAY
+  
+  # Documentación general de la API
+  APIDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: API
+      Properties: !Sub |
+        {
+          "info": {
+            "description": "API REST para la gestión de portfolios. Permite crear, leer, actualizar y eliminar portfolios con información sobre habilidades y descripciones.",
+            "version": "1.0.0"
+          }
+        }
+
+  # Documentación del recurso /portfolios
+  PortfoliosResourceDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: RESOURCE
+        Path: /portfolios
+      Properties: !Sub |
+        {
+          "description": "Recurso para gestionar la colección de portfolios"
+        }
+
+  # Documentación del método GET /portfolios
+  GetPortfoliosMethodDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: METHOD
+        Path: /portfolios
+        Method: GET
+      Properties: !Sub |
+        {
+          "summary": "Obtener todos los portfolios",
+          "description": "Devuelve un listado completo de todos los portfolios almacenados en DynamoDB mediante ScanCommand",
+          "tags": ["Portfolios"],
+          "responses": {
+            "200": {
+              "description": "Lista de portfolios obtenida exitosamente. Devuelve un array vacío si no hay portfolios.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "description": "ID único del portfolio (UUID)"
+                        },
+                        "name": {
+                          "type": "string",
+                          "description": "Nombre del portfolio"
+                        },
+                        "description": {
+                          "type": "string",
+                          "description": "Descripción del portfolio"
+                        },
+                        "skills": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "description": "Lista de habilidades"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Fecha de creación en formato ISO 8601"
+                        },
+                        "updatedAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "description": "Fecha de última actualización en formato ISO 8601"
+                        }
+                      }
+                    }
+                  },
+                  "example": [
+                    {
+                      "id": "123e4567-e89b-12d3-a456-426614174000",
+                      "name": "Mi Portfolio",
+                      "description": "Portfolio de desarrollo web",
+                      "skills": ["JavaScript", "React", "Node.js"],
+                      "createdAt": "2024-01-15T10:30:00.000Z",
+                      "updatedAt": "2024-01-15T10:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            },
+            "500": {
+              "description": "Error interno del servidor",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "description": "Mensaje de error"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+  # Documentación del método POST /portfolios
+  PostPortfoliosMethodDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: METHOD
+        Path: /portfolios
+        Method: POST
+      Properties: !Sub |
+        {
+          "summary": "Crear un nuevo portfolio",
+          "description": "Crea un nuevo portfolio en DynamoDB. El ID se genera automáticamente como UUID v4. Los campos description y skills son opcionales (description por defecto es string vacío, skills por defecto es array vacío).",
+          "tags": ["Portfolios"],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["name"],
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Nombre del portfolio (obligatorio)"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Descripción del portfolio (opcional, por defecto string vacío)"
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Lista de habilidades (opcional, por defecto array vacío)"
+                    }
+                  }
+                },
+                "example": {
+                  "name": "Mi Portfolio",
+                  "description": "Portfolio de desarrollo web",
+                  "skills": ["JavaScript", "React", "Node.js"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "201": {
+              "description": "Portfolio creado exitosamente. Devuelve el portfolio completo incluyendo el ID generado y las fechas.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "ID generado automáticamente (UUID v4)"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "skills": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  },
+                  "example": {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                    "name": "Mi Portfolio",
+                    "description": "Portfolio de desarrollo web",
+                    "skills": ["JavaScript", "React", "Node.js"],
+                    "createdAt": "2024-01-15T10:30:00.000Z",
+                    "updatedAt": "2024-01-15T10:30:00.000Z"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Datos de entrada inválidos. Ocurre cuando no se proporciona el campo name o el body es inválido.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Invalid payload"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error interno del servidor",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+  # Documentación del recurso /portfolios/{id}
+  PortfolioIdResourceDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: RESOURCE
+        Path: /portfolios/{id}
+      Properties: !Sub |
+        {
+          "description": "Recurso para operaciones sobre un portfolio específico identificado por su ID"
+        }
+
+  # Documentación del método GET /portfolios/{id}
+  GetPortfolioIdMethodDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: METHOD
+        Path: /portfolios/{id}
+        Method: GET
+      Properties: !Sub |
+        {
+          "summary": "Obtener un portfolio por ID",
+          "description": "Recupera los detalles completos de un portfolio específico usando su identificador único",
+          "tags": ["Portfolios"],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "ID único del portfolio (UUID)"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Portfolio encontrado y devuelto exitosamente",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "skills": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      }
+                    }
+                  },
+                  "example": {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                    "name": "Mi Portfolio",
+                    "description": "Portfolio de desarrollo web",
+                    "skills": ["JavaScript", "React", "Node.js"],
+                    "createdAt": "2024-01-15T10:30:00.000Z",
+                    "updatedAt": "2024-01-15T10:30:00.000Z"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "ID no proporcionado en la ruta",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Missing id parameter"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Portfolio no encontrado en la base de datos",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Portfolio not found"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error interno del servidor",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+  # Documentación del método PUT /portfolios/{id}
+  PutPortfolioIdMethodDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: METHOD
+        Path: /portfolios/{id}
+        Method: PUT
+      Properties: !Sub |
+        {
+          "summary": "Actualizar un portfolio",
+          "description": "Actualiza parcialmente un portfolio existente. Solo se actualizarán los campos proporcionados en el body. El campo updatedAt se actualiza automáticamente. Devuelve el portfolio completo actualizado.",
+          "tags": ["Portfolios"],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "ID único del portfolio a actualizar"
+            }
+          ],
+          "requestBody": {
+            "required": true,
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "Nuevo nombre del portfolio (opcional)"
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "Nueva descripción del portfolio (opcional)"
+                    },
+                    "skills": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Nueva lista de habilidades (opcional)"
+                    }
+                  }
+                },
+                "example": {
+                  "name": "Portfolio Actualizado",
+                  "description": "Nueva descripción",
+                  "skills": ["Python", "AWS", "Docker"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Portfolio actualizado exitosamente. Devuelve el portfolio completo con todos los campos actualizados.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "skills": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Fecha actualizada automáticamente"
+                      }
+                    }
+                  },
+                  "example": {
+                    "id": "123e4567-e89b-12d3-a456-426614174000",
+                    "name": "Portfolio Actualizado",
+                    "description": "Nueva descripción",
+                    "skills": ["Python", "AWS", "Docker"],
+                    "createdAt": "2024-01-15T10:30:00.000Z",
+                    "updatedAt": "2024-01-16T14:20:00.000Z"
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "ID no proporcionado en la ruta",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Missing id parameter"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Portfolio no encontrado",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Portfolio not found"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error interno del servidor",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+  # Documentación del método DELETE /portfolios/{id}
+  DeletePortfolioIdMethodDocumentation:
+    Type: AWS::ApiGateway::DocumentationPart
+    Properties:
+      RestApiId: !Ref RestAPI
+      Location:
+        Type: METHOD
+        Path: /portfolios/{id}
+        Method: DELETE
+      Properties: !Sub |
+        {
+          "summary": "Eliminar un portfolio",
+          "description": "Elimina permanentemente un portfolio de la base de datos. Primero verifica que el portfolio existe antes de eliminarlo. Esta operación no se puede deshacer.",
+          "tags": ["Portfolios"],
+          "parameters": [
+            {
+              "name": "id",
+              "in": "path",
+              "required": true,
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "ID único del portfolio a eliminar"
+            }
+          ],
+          "responses": {
+            "204": {
+              "description": "Portfolio eliminado exitosamente. No devuelve contenido en el body."
+            },
+            "400": {
+              "description": "ID no proporcionado en la ruta",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Missing id parameter"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Portfolio no encontrado. No se puede eliminar un portfolio que no existe.",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "Portfolio not found"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "500": {
+              "description": "Error interno del servidor",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+  # Versión de la documentación
+  APIDocumentationVersion:
+    Type: AWS::ApiGateway::DocumentationVersion
+    DependsOn:
+      - APIDocumentation
+      - PortfoliosResourceDocumentation
+      - GetPortfoliosMethodDocumentation
+      - PostPortfoliosMethodDocumentation
+      - PortfolioIdResourceDocumentation
+      - GetPortfolioIdMethodDocumentation
+      - PutPortfolioIdMethodDocumentation
+      - DeletePortfolioIdMethodDocumentation
+    Properties:
+      RestApiId: !Ref RestAPI
+      DocumentationVersion: "1.0.0"
+      Description: "Versión 1.0.0 de la documentación de la API de Portfolios"
+
 Outputs:
+  ApiKey:
+    Description: "API Key para acceder a la API Gateway"
+    Value: !Ref APIKey
+
   PortfolioApiUrl:
     Description: "URL base para la API de Portfolios"
     Value: !Sub "https://${RestAPI}.execute-api.${AWS::Region}.amazonaws.com/prod"
-
-  PortfolioNlbDnsName:
-    Description: "DNS del Network Load Balancer"
-    Value: !GetAtt NetworkLoadBalancer.DNSName
-
-  ApiKeyValue:
-    Description: "API Key para acceder a la API Gateway"
-    Value: !Ref APIKey

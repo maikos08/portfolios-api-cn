@@ -1,3 +1,12 @@
+export interface Portfolio {
+  id: string;
+  name: string;
+  description?: string;
+  skills?: string[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface PortfolioDTO {
   id?: string;
   name: string;

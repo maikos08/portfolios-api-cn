@@ -7,6 +7,10 @@ import { notFoundHandler, errorHandler } from './middleware/error.middleware';
 
 const app = express();
 
+// Health & readiness endpoints used by container orchestrators and load balancers
+app.get('/health', (_req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/ready', (_req, res) => res.status(200).json({ ready: true }));
+
 const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
