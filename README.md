@@ -135,9 +135,7 @@ docker push <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPOSITORY_
 
 ### 3) Desplegar base de datos (si la tabla Portfolios no existe aún)
 
-```bash
-aws cloudformation deploy --stack-name <STACK_NAME_BDD> --template-file bdd.yml --region <AWS_REGION>
-```
+Se despliega desde CloudFormation mediante el archivo bdd.yml.
 
 ### 4) Desplegar infraestructura
 
