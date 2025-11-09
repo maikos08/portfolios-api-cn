@@ -21,7 +21,7 @@ API REST para gestionar portfolios. Servicio desarrollado en **TypeScript/Node.j
 ---
 
 ## Estructura del repositorio
-Raíz del proyecto (carpeta `api`):
+Raíz del proyecto:
 
 ```
 api/
@@ -50,7 +50,6 @@ api/
 ### Por qué está organizado así
 - **Separación de responsabilidades**: rutas → controladores → datos. Facilita testing y mantenimiento.  
 - **Tipos y modelos centralizados** para evitar duplicidad y asegurar consistencia.  
-- **Middleware global** (CORS, logging, error handling) para comportamiento uniforme y control de headers en producción.
 
 ---
 
