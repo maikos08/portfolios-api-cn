@@ -57,7 +57,6 @@ api/
 ### Por qué está organizado así
 - **Separación de responsabilidades**: rutas → controladores → datos. Facilita testing y mantenimiento.  
 - **Tipos y modelos centralizados** para evitar duplicidad y asegurar consistencia.  
-- **Middleware global** (CORS, logging, error handling) para comportamiento uniforme y control de headers en producción.
 
 ---
 
@@ -148,9 +147,7 @@ docker push <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPOSITORY_
 
 ### 3) Desplegar base de datos (si la tabla Portfolios no existe aún)
 
-```bash
-aws cloudformation deploy --stack-name <STACK_NAME_BDD> --template-file bdd.yml --region <AWS_REGION>
-```
+Se despliega desde CloudFormation mediante el archivo bdd.yml.
 
 ### 4) Desplegar infraestructura
 
@@ -201,7 +198,6 @@ npm install && npm run build && npm run start
 
 ```bash
 curl -i http://localhost:8080/health
-curl -i -H "Origin: http://example.com" -H "x-api-key: <API_KEY>" http://localhost:8080/portfolios
 ```
 
 ---
