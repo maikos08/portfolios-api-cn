@@ -186,7 +186,6 @@ npm install && npm run build && npm run start
 
 ```bash
 curl -i http://localhost:8080/health
-curl -i -H "Origin: http://example.com" -H "x-api-key: <API_KEY>" http://localhost:8080/portfolios
 ```
 
 ---
