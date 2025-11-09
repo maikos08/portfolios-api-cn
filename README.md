@@ -1,4 +1,3 @@
-```markdown
 # Portfolios API — Documentación técnica
 
 **Autor:** Miguel Ángel Rodríguez Ruano
@@ -22,7 +21,7 @@ API REST para gestionar portfolios. Servicio desarrollado en **TypeScript/Node.j
 ---
 
 ## Estructura del repositorio
-Raíz del proyecto (carpeta `api`):
+Raíz del proyecto:
 
 ```
 api/
@@ -30,22 +29,29 @@ api/
 ├── package-lock.json
 ├── tsconfig.json
 ├── Dockerfile
-├── api-ecs.yml
-├── api-ecr.yml
-├── bdd.yml
+├── api-ecs.yml          # CloudFormation para ECS/ALB/NLB + API Gateway
+├── api-ecr.yml          # CloudFormation para crear repositorio ECR
+├── bdd.yml              # CloudFormation para DynamoDB (tabla Portfolios)
 ├── src/
-│   ├── app.ts
-│   ├── server.ts
+│   ├── app.ts           # Composición de la app express
+│   ├── server.ts        # Entrypoint que arranca el servidor
 │   ├── routes/
 │   │   └── portfolios.routes.ts
 │   ├── controllers/
+│   │   └── portfolios.controller.ts
 │   ├── models/
+│   │   └── portfolio.model.ts
 │   ├── types/
+│   │   └── portfolio.d.ts
 │   ├── middleware/
+│   │   ├── error.middleware.ts
+│   │   └── validation.middleware.ts
+│   ├── utils/
+│   │   └── validation.ts
 │   └── config/
-│       └── data-source.ts
+│       └── index.ts    # carga de variables y límites de validación
 └── public/
-    └── index.html
+    └── index.html      # UI estática que consume la API
 ```
 
 ### Por qué está organizado así
@@ -87,6 +93,11 @@ NODE_ENV=development
 PORT=8080
 AWS_REGION=us-east-1
 DYNAMODB_TABLE_NAME=Portfolios
+
+MAX_NAME_LENGTH=100
+MAX_DESCRIPTION_LENGTH=1000
+MAX_SKILLS=50
+MAX_SKILL_LENGTH=50
 ```
 
 ---

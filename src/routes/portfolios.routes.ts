@@ -6,6 +6,7 @@ import {
   updatePortfolio,
   deletePortfolio,
 } from '../controllers/portfolios.controller';
+import { validateCreateMiddleware, validateUpdateMiddleware } from '../middleware/validation.middleware';
 
 const router = Router();
 
@@ -14,10 +15,10 @@ router.get('/portfolios', getAllPortfolios);
 router.get('/portfolios/:id', getPortfolioById);
 
 // POST routes
-router.post('/portfolios', createPortfolio);
+router.post('/portfolios', validateCreateMiddleware, createPortfolio);
 
 // PUT routes
-router.put('/portfolios/:id', updatePortfolio);
+router.put('/portfolios/:id', validateUpdateMiddleware, updatePortfolio);
 
 // DELETE routes
 router.delete('/portfolios/:id', deletePortfolio);

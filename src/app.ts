@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import path from 'path';
 import routes from './routes';
 import { notFoundHandler, errorHandler } from './middleware/error.middleware';
+import { VALIDATION_LIMITS } from './utils/validation';
 
 const app = express();
 
@@ -34,6 +35,8 @@ app.use(express.json());
 app.use(morgan('dev'));
 
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+app.get('/config', (_req, res) => res.json(VALIDATION_LIMITS));
 
 app.use(routes);
 

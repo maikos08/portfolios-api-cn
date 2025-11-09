@@ -425,9 +425,18 @@
   </div>
 
   <script>
+    // API configuration
     let API_URL = '';
     let API_KEY = '';
     let editingId = null;
+
+    // Validation limits (fallback values until fetched from server)
+    let VALIDATION_LIMITS = {
+      maxNameLength: 100,
+      maxDescriptionLength: 1000,
+      maxSkills: 50,
+      maxSkillLength: 50
+    };
 
     const portfolioForm = document.getElementById('portfolioForm');
     const portfoliosGrid = document.getElementById('portfoliosGrid');
@@ -436,7 +445,7 @@
     const submitBtn = document.getElementById('submitBtn');
     const cancelBtn = document.getElementById('cancelBtn');
 
-    window.onload = () => {
+    window.onload = async () => {
       const savedUrl = localStorage.getItem('portfolioApiUrl');
       const savedKey = localStorage.getItem('portfolioApiKey');
       if (savedUrl && savedKey) {
@@ -444,6 +453,8 @@
         API_KEY = savedKey;
         document.getElementById('apiUrlInput').value = savedUrl;
         document.getElementById('apiKeyInput').value = savedKey;
+        await fetchValidationConfig();
+        applyInputLimits();
         loadPortfolios();
       } else {
         openConfigModal();
@@ -475,7 +486,11 @@
       localStorage.setItem('portfolioApiKey', API_KEY);
       document.getElementById('configOverlay').classList.add('hidden');
       showToast('Configuración guardada', 'success');
-      loadPortfolios();
+      // fetch latest limits and apply them
+      fetchValidationConfig().then(() => {
+        applyInputLimits();
+        loadPortfolios();
+      });
     }
 
     async function apiRequest(endpoint, method = 'GET', body = null) {
@@ -493,11 +508,47 @@
       return await res.json();
     }
 
+    async function fetchValidationConfig() {
+      try {
+        const res = await fetch(`${API_URL}/config`, {
+          method: 'GET',
+          headers: { 'x-api-key': API_KEY }
+        });
+        if (!res.ok) throw new Error('No se pudo obtener la configuración');
+        const cfg = await res.json();
+        // Accept either { limits: { ... } } or the raw limits object
+        if (cfg) {
+          if (cfg.limits) VALIDATION_LIMITS = cfg.limits;
+          else VALIDATION_LIMITS = cfg;
+        }
+      } catch (err) {
+        // keep defaults and show a non-blocking warning
+        console.warn('Fallo al obtener limits, usando valores por defecto', err);
+      }
+    }
+
+    function applyInputLimits() {
+      const nameEl = document.getElementById('name');
+      const descEl = document.getElementById('description');
+      if (nameEl) nameEl.setAttribute('maxlength', String(VALIDATION_LIMITS.maxNameLength));
+      if (descEl) descEl.setAttribute('maxlength', String(VALIDATION_LIMITS.maxDescriptionLength));
+    }
+
     portfolioForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const name = document.getElementById('name').value;
-      const description = document.getElementById('description').value;
+      const name = document.getElementById('name').value.trim();
+      const description = document.getElementById('description').value.trim();
       const skills = document.getElementById('skills').value.split(',').map(s => s.trim()).filter(Boolean);
+
+      // Client-side validation using server-provided limits
+      if (!name) return showToast('El nombre es requerido', 'error');
+      if (name.length > VALIDATION_LIMITS.maxNameLength) return showToast(`El nombre no puede exceder ${VALIDATION_LIMITS.maxNameLength} caracteres`, 'error');
+      if (description.length > VALIDATION_LIMITS.maxDescriptionLength) return showToast(`La descripción no puede exceder ${VALIDATION_LIMITS.maxDescriptionLength} caracteres`, 'error');
+      if (skills.length > VALIDATION_LIMITS.maxSkills) return showToast(`Máximo ${VALIDATION_LIMITS.maxSkills} habilidades permitidas`, 'error');
+      for (const s of skills) {
+        if (s.length > VALIDATION_LIMITS.maxSkillLength) return showToast(`Cada habilidad no puede exceder ${VALIDATION_LIMITS.maxSkillLength} caracteres`, 'error');
+      }
+
       const data = { name, description, skills };
 
       try {
