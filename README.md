@@ -1,4 +1,3 @@
-```markdown
 # Portfolios API — Documentación técnica
 
 **Autor:** Miguel Ángel Rodríguez Ruano
