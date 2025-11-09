@@ -1,279 +1,208 @@
-# Portfolio API - Backend Profesional
+```markdown
+# Portfolios API — Documentación técnica
 
-API REST desarrollada con **Node.js**, **TypeScript**, **Express** y **AWS DynamoDB**.
+**Autor:** Miguel Ángel Rodríguez Ruano
 
-## 🚀 Características
+---
 
-- ✅ TypeScript con configuración estricta
-- ✅ AWS SDK v3 para DynamoDB
-- ✅ Variables de entorno con `dotenv`
-- ✅ Estructura modular: controllers, routes, models, types, middleware
-- ✅ Manejo de errores centralizado
-- ✅ Desarrollo con hot-reload (`ts-node-dev`)
-- ✅ CRUD completo para portfolios
-- ✅ Soporte para DynamoDB local y AWS
+## Descripción
+API REST para gestionar portfolios. Servicio desarrollado en **TypeScript/Node.js** con **Express**, desacoplado para ejecutarse en contenedor (**ECS/Fargate**). La API expone endpoints para **CRUD** sobre portfolios y está diseñada para trabajar con **DynamoDB** como persistencia.
 
-## 📦 Requisitos
+---
 
-- Node.js >= 16
-- Cuenta de AWS con DynamoDB (o DynamoDB Local para desarrollo)
-- Credenciales de AWS configuradas
-- npm o yarn
+## Contenido de este documento
+- Organización del proyecto y propósito de cada sección  
+- Dependencias e instalación  
+- Variables de entorno necesarias  
+- Arquitectura y responsabilidades de los componentes  
+- Guía de despliegue a AWS (CloudFormation, ECR, ECS/ALB/NLB)  
+- Verificación y pruebas locales  
+- Buenas prácticas y notas de seguridad  
 
-## 🛠️ Instalación y configuración
+---
 
-### 1. Instalar dependencias
-```cmd
+## Estructura del repositorio
+Raíz del proyecto (carpeta `api`):
+
+```
+api/
+├── package.json
+├── package-lock.json
+├── tsconfig.json
+├── Dockerfile
+├── api-ecs.yml
+├── api-ecr.yml
+├── bdd.yml
+├── src/
+│   ├── app.ts
+│   ├── server.ts
+│   ├── routes/
+│   │   └── portfolios.routes.ts
+│   ├── controllers/
+│   ├── models/
+│   ├── types/
+│   ├── middleware/
+│   └── config/
+│       └── data-source.ts
+└── public/
+    └── index.html
+```
+
+### Por qué está organizado así
+- **Separación de responsabilidades**: rutas → controladores → datos. Facilita testing y mantenimiento.  
+- **Tipos y modelos centralizados** para evitar duplicidad y asegurar consistencia.  
+- **Middleware global** (CORS, logging, error handling) para comportamiento uniforme y control de headers en producción.
+
+---
+
+## Dependencias e instalación (entorno de desarrollo)
+
+### Requisitos locales:
+- Node.js  
+- npm  
+- Docker (para construir y probar imagen localmente)  
+- AWS CLI configurado con credenciales y región  
+
+### Instalación:
+
+```bash
+cd \path\to\repo\api
 npm install
 ```
 
-### 2. Configurar AWS
-
-#### Opción A: Usar AWS Cloud
-1. Crear usuario IAM con permisos de DynamoDB
-2. Obtener `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY`
-3. Configurar en `.env`
-
-#### Opción B: Usar DynamoDB Local (desarrollo)
-```cmd
-# Descargar DynamoDB Local
-# https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html
-
-# Ejecutar DynamoDB Local
-java -Djava.library.path=./DynamoDBLocal_lib -jar DynamoDBLocal.jar -sharedDb
+```bash
+npm run build
 ```
 
-### 3. Configurar variables de entorno
-
-Edita `.env`:
-```env
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=tu_access_key
-AWS_SECRET_ACCESS_KEY=tu_secret_key
-DYNAMODB_TABLE_NAME=Portfolios
-PORT=3000
-
-# Para DynamoDB Local, descomentar:
-# DYNAMODB_ENDPOINT=http://localhost:8000
-```
-
-### 4. Crear tabla DynamoDB
-
-#### Opción A: Usando CloudFormation (Recomendado para AWS)
-```cmd
-aws cloudformation create-stack ^
-  --stack-name portfolios-api ^
-  --template-body file://cloudformation.yml ^
-  --region us-east-1
-```
-Ver `CLOUDFORMATION.md` para más detalles y opciones.
-
-#### Opción B: Usando script Node.js
-```cmd
-npm run db:create
-```
-
-### 5. Insertar datos de ejemplo (opcional)
-```cmd
-npm run db:seed
-```
-
-### 6. Construir y subir imagen Docker a AWS ECR
-
-#### Opción local (script)
-```cmd
-# Linux / macOS
-./scripts/build-and-push-ecr.sh <AWS_ACCOUNT_ID> <AWS_REGION> <REPOSITORY_NAME> <TAG>
-
-# Windows (PowerShell)
-pwsh ./scripts/build-and-push-ecr.ps1 -AwsAccountId <AWS_ACCOUNT_ID> -AwsRegion <AWS_REGION> -RepoName <REPOSITORY_NAME> -ImageTag <TAG>
-```
-
-#### Opción CI (GitHub Actions)
-1. Añade estos secrets en tu repositorio GitHub: `AWS_ACCOUNT_ID`, `AWS_REGION`, `ECR_REPOSITORY`, `AWS_ROLE_TO_ASSUME` (o configurar AWS credentials via secrets).
-2. Push a la rama `main` y la action `.github/workflows/ecr.yml` construirá y publicará la imagen a ECR.
-
-
-### 6. Ejecutar en desarrollo
-```cmd
+```bash
 npm run dev
 ```
 
-Servidor corriendo en `http://localhost:3000`
+---
 
-### 7. Acceder al Frontend
+## Variables de entorno (archivo `.env`)
 
-Abre tu navegador en `http://localhost:3000` para ver la interfaz web.
-
-- **API endpoints:** `http://localhost:3000/api/portafolios`
-- **Frontend:** `http://localhost:3000/index.html` (o simplemente `http://localhost:3000`)
-
-## 📚 Endpoints API
-
-**Base URL:** `/api/portfolios`
-
-### GET - Consultas
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/portfolios` | Lista todos los portfolios |
-| GET | `/api/portfolios/:id` | Obtiene un portfolio por ID |
-| GET | `/api/portfolios/skills/all` | Lista todas las habilidades únicas |
-
-### POST - Crear
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| POST | `/api/portfolios` | Crea un nuevo portfolio |
-
-### PUT - Actualizar
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| PUT | `/api/portfolios/:id` | Actualiza un portfolio |
-
-### DELETE - Eliminar
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| DELETE | `/api/portfolios/:id` | Elimina un portfolio |
-
-## 📝 Ejemplos de uso
-
-### Listar todos los portfolios
-```cmd
-curl http://localhost:3000/api/portfolios
+```env
+NODE_ENV=development
+PORT=8080
+AWS_REGION=us-east-1
+DYNAMODB_TABLE_NAME=Portfolios
 ```
 
-### Obtener portfolio por ID
-```cmd
-curl http://localhost:3000/api/portfolios/abc-123-def
+---
+
+## Arquitectura (visión general)
+
+La aplicación está diseñada para ejecutarse como servicio contenedorizado en **ECS (Fargate)** y recibir tráfico a través de **API Gateway (REST)** conectado mediante **VPC Link** a un **Network Load Balancer (NLB)** que enruta a las tareas ECS.
+
+### Flujo resumido:
+```
+Cliente → API Gateway → VPC Link → NLB → ECS (Fargate) → DynamoDB
+←───────────────────────────────────────────────────────────────
 ```
 
-### Crear portfolio
-```json
-POST /api/portfolios
-{
-  "name": "Mi Portfolio",
-  "description": "Desarrollador Full Stack",
-  "skills": ["TypeScript", "React", "Node.js", "AWS"]
-}
+### Por qué cada cosa está donde está
+| Componente       | Propósito |
+|------------------|---------|
+| **API Gateway**  | Gestión de API, seguridad (API Key, usage plans), CORS |
+| **NLB + VPC Link** | Acceso seguro desde API Gateway a servicios en VPC |
+| **ECS/Fargate**  | Ejecución sin gestión de servidores, escalabilidad |
+| **DynamoDB**     | Persistencia NoSQL ideal para este modelo |
+
+---
+
+## Despliegue a AWS (guía paso a paso)
+
+> **Nota:** Reemplazar placeholders (`<STACK_NAME_API>`, `<AWS_REGION>`, etc.) por valores reales.
+
+### 1) Construir y subir imagen a ECR
+
+Se despliega el archivo `api-ecr.yml` en CloudFormation para crear el repositorio ECR. Una vez creado, en la consola de AWS se mostrarán los comandos necesarios para subir la imagen al repositorio.
+
+```bash
+# Autenticación
+aws ecr get-login-password --region <AWS_REGION> | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com
 ```
 
-```cmd
-curl -X POST http://localhost:3000/api/portfolios -H "Content-Type: application/json" -d "{\"name\":\"Mi Portfolio\",\"description\":\"Desarrollador Full Stack\",\"skills\":[\"TypeScript\",\"React\",\"Node.js\"]}"
+```bash
+# Construir imagen
+docker build --platform linux/amd64 -t <LOCAL_IMAGE_NAME>:latest -f ./Dockerfile . --provenance=false
 ```
 
-### Actualizar portfolio
-```json
-PUT /api/portfolios/:id
-{
-  "description": "Nueva descripción actualizada",
-  "skills": ["TypeScript", "DynamoDB", "AWS Lambda"]
-}
+```bash
+# Etiquetar y empujar
+docker tag <LOCAL_IMAGE_NAME>:latest <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPOSITORY_NAME>:latest
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPOSITORY_NAME>:latest
 ```
 
-### Eliminar portfolio
-```cmd
-curl -X DELETE http://localhost:3000/api/portfolios/abc-123-def
+### 3) Desplegar base de datos (si la tabla Portfolios no existe aún)
+
+```bash
+aws cloudformation deploy --stack-name <STACK_NAME_BDD> --template-file bdd.yml --region <AWS_REGION>
 ```
 
-### Obtener todas las habilidades
-```cmd
-curl http://localhost:3000/api/portfolios/habilidades/all
+### 4) Desplegar infraestructura
+
+Se despliega el archivo `api-ecs.yml` en CloudFormation. Durante el proceso se solicitarán los siguientes parámetros:
+
+- `ImageName` (valor por defecto: `portfolios-app:latest`)  
+- `VpcId`  
+- `SubnetIds` (mínimo 2 subredes)  
+- `VpcCidr` (rango CIDR del VPC, se muestra al seleccionar el VPC)  
+- `DBDynamoName` (valor por defecto: `"Portfolios"`)
+
+### 5) Obtener URL de la API
+
+La URL se muestra en los **outputs** tras el despliegue exitoso de la infraestructura.
+
+También se puede obtener mediante el siguiente comando (requiere AWS CLI):
+
+```bash
+aws cloudformation describe-stacks --stack-name <STACK_NAME_API> --region <AWS_REGION> \
+  --query "Stacks[0].Outputs[?OutputKey=='PortfolioApiUrl'].OutputValue" --output text
 ```
 
-## 🏗️ Estructura del proyecto
+> Ejemplo: `https://{restapi-id}.execute-api.<region>.amazonaws.com/prod`
 
-```
-src/
-├── app.ts                    # Configuración Express
-├── server.ts                 # Punto de entrada
-├── config/
-│   ├── index.ts             # Variables de entorno
-│   └── data-source.ts       # Cliente DynamoDB
-├── controllers/
-│   └── portfolios.controller.ts
-├── models/
-│   └── portfolio.model.ts   # Interface Portfolio
-├── routes/
-│   ├── index.ts
-│   └── portfolios.routes.ts
-├── types/
-│   └── portfolio.d.ts       # TypeScript types
-└── middleware/
-    └── error.middleware.ts  # Manejo de errores
+### 6) Obtener API Key
 
-scripts/
-├── create-table.js          # Crear tabla DynamoDB
-└── seed-data.js             # Insertar datos de ejemplo
+El `ApiKeyId` también aparece en los **outputs** del stack.
+
+Alternativamente, se puede obtener con:
+
+```bash
+ApiKeyId=$(aws cloudformation describe-stack-resources --stack-name <STACK_NAME_API> --region <AWS_REGION> \
+  --query "StackResources[?LogicalResourceId=='APIKey'].PhysicalResourceId" --output text)
 ```
 
-## 🔧 Scripts disponibles
+Y luego obtener el valor real de la clave:
 
-```cmd
-npm run dev      # Desarrollo con hot-reload
-npm run build    # Build para producción
-npm start        # Ejecutar build de producción
+```bash
+aws apigateway get-api-key --api-key ${ApiKeyId} --include-value --region <AWS_REGION> \
+  --query '{id:id, name:name, value:value}' --output json
 ```
 
-## 🗄️ Modelo de datos DynamoDB
+### 7) Verificación local
 
-### Tabla: Portfolios
-- **Partition Key:** `id` (String) - UUID
-- **Attributes:**
-  - `name`: String (requerido)
-  - `description`: String (opcional)
-  - `skills`: List de Strings (opcional)
-  - `createdAt`: String (ISO timestamp)
-  - `updatedAt`: String (ISO timestamp)
-
-### Ejemplo de Item
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "name": "Corazoncito de Melocotón",
-  "description": "Desarrolladora Backend Node.js",
-  "skills": ["Node.js", "Express", "DynamoDB", "AWS"],
-  "createdAt": "2025-10-24T10:30:00.000Z",
-  "updatedAt": "2025-10-24T10:30:00.000Z"
-}
+```bash
+npm install && npm run build && npm run start
 ```
 
-## 🔒 Producción
+```bash
+curl -i http://localhost:8080/health
+curl -i -H "Origin: http://example.com" -H "x-api-key: <API_KEY>" http://localhost:8080/portfolios
+```
 
-Para producción, considera:
-- Establecer `NODE_ENV=production`
-- Usar IAM roles en EC2/Lambda en lugar de credenciales hardcodeadas
-- Configurar CORS apropiadamente
-- Agregar rate limiting
-- Implementar autenticación/autorización (AWS Cognito)
-- Usar AWS Secrets Manager para credenciales
-- Configurar CloudWatch para logging y monitoring
-- Implementar DynamoDB backup automático
-- Considerar usar DynamoDB Streams para auditoría
+---
 
-## 🌐 Despliegue en AWS
+## Ejecución del frontend local apuntando a la API (localhost:8080)
 
-### Opción 1: AWS Lambda + API Gateway
-- Usar Serverless Framework o AWS SAM
-- Auto-scaling y pay-per-use
-- Integración nativa con DynamoDB
-
-### Opción 2: AWS EC2 / ECS / EKS
-- Deploy tradicional con Docker
-- Mayor control sobre infraestructura
-- Usar IAM roles para acceso a DynamoDB
-
-### Opción 3: AWS App Runner
-- Deploy directo desde GitHub
-- Managed container service
-- Auto-scaling integrado
-
-## 💰 Costos DynamoDB
-
-- **On-Demand Mode:** Pay per request (ideal para desarrollo)
-- **Provisioned Mode:** Capacidad reservada (más económico en producción)
-- **Free Tier:** 25 GB storage + 25 WCU/RCU
-
-## 📄 Licencia
-
-ISC
-
+1. Abrir la interfaz y configurar:
+ ```env
+   API_URL=https://xxxx.execute-api.us-east-1.amazonaws.com/prod/portfolios
+   API_KEY=tu_api_key_aqui
+   ```
+2. Verificar lo siguiente:
+   - Las llamadas a `/portfolios` se realizan correctamente  
+   - No aparecen errores de CORS en la consola del navegador
 
