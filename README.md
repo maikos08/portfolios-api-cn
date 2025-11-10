@@ -148,11 +148,11 @@ docker tag <LOCAL_IMAGE_NAME>:latest <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazo
 docker push <AWS_ACCOUNT_ID>.dkr.ecr.<AWS_REGION>.amazonaws.com/<ECR_REPOSITORY_NAME>:latest
 ```
 
-### 3) Desplegar base de datos (si la tabla Portfolios no existe aún)
+### 2) Desplegar base de datos (si la tabla Portfolios no existe aún)
 
 Se despliega desde CloudFormation mediante el archivo bdd.yml.
 
-### 4) Desplegar infraestructura
+### 3) Desplegar infraestructura
 
 Se despliega el archivo `api-ecs.yml` en CloudFormation. Durante el proceso se solicitarán los siguientes parámetros:
 
@@ -162,7 +162,7 @@ Se despliega el archivo `api-ecs.yml` en CloudFormation. Durante el proceso se s
 - `VpcCidr` (rango CIDR del VPC, se muestra al seleccionar el VPC)  
 - `DBDynamoName` (valor por defecto: `"Portfolios"`)
 
-### 5) Obtener URL de la API
+### 4) Obtener URL de la API
 
 La URL se muestra en los **outputs** tras el despliegue exitoso de la infraestructura.
 
@@ -175,7 +175,7 @@ aws cloudformation describe-stacks --stack-name <STACK_NAME_API> --region <AWS_R
 
 > Ejemplo: `https://{restapi-id}.execute-api.<region>.amazonaws.com/prod`
 
-### 6) Obtener API Key
+### 5) Obtener API Key
 
 El `ApiKeyId` también aparece en los **outputs** del stack.
 
@@ -193,7 +193,7 @@ aws apigateway get-api-key --api-key ${ApiKeyId} --include-value --region <AWS_R
   --query '{id:id, name:name, value:value}' --output json
 ```
 
-### 7) Verificación local
+### 6) Verificación local
 
 ```bash
 npm install && npm run build && npm run start
