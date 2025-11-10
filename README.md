@@ -50,8 +50,11 @@ api/
 │   │   └── validation.ts
 │   └── config/
 │       └── index.ts    # carga de variables y límites de validación
+├── postman/            # Postman collection & environment for automated/manual testing
+│   ├── portfolios-api.postman_collection.json
+│   └── portfolios-api.postman_environment.json
 └── public/
-    └── index.html      # UI estática que consume la API
+  └── index.html      # UI estática que consume la API
 ```
 
 ### Por qué está organizado así
@@ -199,6 +202,19 @@ npm install && npm run build && npm run start
 ```bash
 curl -i http://localhost:8080/health
 ```
+
+#### Postman collection
+
+- Hay una colección y un environment en la carpeta `postman/`.
+- Para importarlos en Postman:
+  1) Postman → Import → seleccionar `postman/portfolios-api.postman_collection.json`.
+  2) Environments → Import → seleccionar `postman/portfolios-api.postman_environment.json`.
+- Edita el environment importado y establece:
+  - `base_url`: URL de API Gateway desplegado (recordar poner `/portfolios`).
+  - `api_key`: API Key, ya que la API lo requiere.
+- Selecciona el environment en Postman y ejecuta la colección usando el Collection Runner.
+- Nota: la petición "Create portfolio" guarda el id en la variable de environment `portfolioId` para las siguientes peticiones.
+- Nota: los tests de la colección asumen respuestas 2xx; ajusta si tu API devuelve otros códigos (p.ej. 201).
 
 ---
 

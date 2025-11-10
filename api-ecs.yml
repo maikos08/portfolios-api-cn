@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: "ECS Fargate + API Gateway REST API con API Key (Portfolios, solo DynamoDB, escucha en 8080)"
+Description: "ECS Fargate + API Gateway REST API con API Key (Portfolios)"
 
 Parameters:
   ImageName:

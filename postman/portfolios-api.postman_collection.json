@@ -1,0 +1,168 @@
+{
+  "info": {
+    "name": "Portfolios API - Serverless",
+    "_postman_id": "b6a8f1a3-0000-4f2c-9c8a-000000000001",
+    "description": "Collection to test Portfolios API (create, list, get, update, delete). Set environment variables before running: base_url, api_key.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create portfolio",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var json = pm.response.json();",
+              "pm.test('Create: response is 2xx', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+              "if(json && json.id){ pm.environment.set('portfolioId', json.id); }"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-api-key", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Portfolio {{randomInt}}\",\n  \"description\": \"Created by Postman collection\",\n  \"skills\": [\"ts\", \"node\"]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/portfolios",
+          "host": ["{{base_url}}"],
+          "path": ["portfolios"]
+        }
+      }
+    },
+    {
+      "name": "List all portfolios",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "x-api-key", "value": "{{api_key}}" }
+        ],
+        "url": { "raw": "{{base_url}}/portfolios", "host": ["{{base_url}}"], "path": ["portfolios"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('List: 2xx status', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+              "var json = pm.response.json();",
+              "pm.test('List: body is array', function () { pm.expect(Array.isArray(json)).to.be.true; });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Get portfolio by id",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "x-api-key", "value": "{{api_key}}" } ],
+        "url": {
+          "raw": "{{base_url}}/portfolios/{{portfolioId}}",
+          "host": ["{{base_url}}"],
+          "path": ["portfolios","{{portfolioId}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Get by id: 2xx status', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+              "var json = pm.response.json();",
+              "pm.test('Get by id: has id', function () { pm.expect(json).to.have.property('id'); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update portfolio",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "x-api-key", "value": "{{api_key}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Updated name via Postman\",\n  \"description\": \"Updated description\"\n}"
+        },
+        "url": { "raw": "{{base_url}}/portfolios/{{portfolioId}}", "host": ["{{base_url}}"], "path": ["portfolios","{{portfolioId}}"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Update: 2xx status', function () { pm.expect(pm.response.code).to.be.within(200, 299); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete portfolio",
+      "request": {
+        "method": "DELETE",
+        "header": [ { "key": "x-api-key", "value": "{{api_key}}" } ],
+        "url": { "raw": "{{base_url}}/portfolios/{{portfolioId}}", "host": ["{{base_url}}"], "path": ["portfolios","{{portfolioId}}"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Delete: 2xx status', function () { pm.expect(pm.response.code).to.be.within(200, 299); });",
+              "// Clear the portfolioId variable after delete",
+              "pm.environment.unset('portfolioId');"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative: Get missing id",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "x-api-key", "value": "{{api_key}}" } ],
+        "url": { "raw": "{{base_url}}/portfolios/does-not-exist", "host": ["{{base_url}}"], "path": ["portfolios","does-not-exist"] }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Get missing: returns 404 or 4xx', function () { pm.expect(pm.response.code).to.be.at.least(400); });"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// ensure a randomInt variable exists for unique names",
+          "if(!pm.environment.get('randomInt')){ pm.environment.set('randomInt', Math.floor(Math.random()*100000)); }"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}
